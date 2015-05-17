@@ -15,7 +15,7 @@ while True:
     message = input("->")
     while len(message) == 0:
         message = input("->")
-    data = json.dumps({'message': message, 'user': 'test', 'to': 'all'})
+    data = json.dumps({'message': message, 'user': 'test', 'to': 'broadcast_message'})
     sock.send(bytes(data, "utf-8"))
     received = str(sock.recv(100024), "utf-8")
     print("Received: {}".format(received))
