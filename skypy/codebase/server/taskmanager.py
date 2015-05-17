@@ -15,4 +15,17 @@ class TaskManager:
         # TODO: Change this line
         self.data = data.decode('utf-8')
         self.data = json.loads(self.data)
+        self.client_data['client'].username = self.data['username']
         self.task_executor.execute(self.data, self.client_data)
+
+    def fail_task(self):
+        pass
+
+    def pending_task(self):
+        pass
+
+    def log_task(self):
+        pass
+
+    def send_failed_task(self):
+        pass
