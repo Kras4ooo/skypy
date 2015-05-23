@@ -6,6 +6,7 @@ from codebase.server.taskmanager import TaskManager
 
 class SkyPyServer(socketserver.BaseRequestHandler):
     members = []
+    rooms = {}
 
     def __init__(self, *args, **kwargs):
         self.member = None
@@ -45,7 +46,8 @@ class SkyPyServer(socketserver.BaseRequestHandler):
         return {
             'request': self.request,
             'client': self.member,
-            'members': self.members
+            'members': self.members,
+            'rooms': self.rooms
         }
 
     def __remove_member(self):
