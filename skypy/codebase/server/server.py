@@ -14,6 +14,7 @@ class SkyPyServer(socketserver.BaseRequestHandler):
 
     def handle(self):
         self.__set_member()
+        print(self.members)
         client_data = self.__get_client_data()
         task_manager = TaskManager(client_data)
         while True:

@@ -3,6 +3,7 @@ class Member:
         self.__client_address = None
         self.__request = None
         self.__username = None
+        self.__public_key = None
 
     @property
     def client_address(self):
@@ -27,6 +28,14 @@ class Member:
     @username.setter
     def username(self, value):
         self.__username = value
+
+    @property
+    def public_key(self):
+        return self.__public_key
+
+    @public_key.setter
+    def public_key(self, value):
+        self.__public_key = value
 
     @staticmethod
     def find_member(search_member, members):
