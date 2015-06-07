@@ -11,7 +11,7 @@ class Client(Thread):
         self.sock.connect((host, port))
         self.members = {}
         self.recv = None
-        self.__set_member(kwargs['username'])
+        # TODO: self.__set_member(kwargs['username'])
         super(Client, self).__init__(*args, **kwargs)
 
     def __set_member(self, username, public_key=None):

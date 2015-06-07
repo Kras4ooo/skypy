@@ -3,14 +3,34 @@ from codebase.common.room import Room
 
 
 class TaskExecutor:
+    """
+    TaskExecutor takes care that send and forward
+    files/messages to the right people/groups.
+    """
     def __init__(self):
         self.client_data = None
 
     def execute(self, data, client_data):
+        """
+        The method takes care that the data to be forwarded to the parser,
+        processed and sent to carry out the necessary functionality
+
+        @type data: dict
+        @param data: dictionary data to whom and what should be sent
+        @type client_data: dict
+        @param client_data: dictionary of customer data sender
+        """
         self.client_data = client_data
         self.analyze_input(data)
 
     def analyze_input(self, data):
+        """
+        Analyze the data sent from the socket
+        and by referring to the correct method for processing.
+
+        @type data: dict
+        @param data: data for analysis
+        """
         try:
             if 'room' in data:
                 getattr(self, data['room']['option']['action'])(data)
@@ -29,14 +49,34 @@ class TaskExecutor:
 
     @staticmethod
     def encode_message(message):
+        """
+        Coded message to byte code
+
+        @type message: string
+        @param message: message
+        """
         return bytes(message, 'utf-8')
 
     def broadcast(self, data):
+        """
+        The method takes care to send a message to all participants in the chat
+
+        @type data: dict
+        @param data: dictionary containing the message that will be sent
+        to all participants in the chat.
+        """
         message = TaskExecutor.encode_message(data['message'])
         for member in self.client_data['members']:
             member.request.sendall(message)
 
     def to_user(self, data):
+        """
+        The method takes care to send a message to the particular user in the chat
+
+        @type data: dict
+        @param data: dictionary containing the message that will be sent
+        to the particular user.
+        """
         members = self.client_data['members']
         to_member = Member.find_member(data['to_user'], members)
         message = TaskExecutor.encode_message(data['message'])
@@ -46,6 +86,14 @@ class TaskExecutor:
 
     # Rooms options
     def __create_room(self, room_option, message):
+        """
+        Method takes care that create room
+
+        @type room_option: dict
+        @param room_option: meta data to create the room
+        @type message: bytes
+        @param message: the message which will be sent
+        """
         room = Room()
         room.room_id = room_option['uid']
         room.members.append(self.client_data['client'])
@@ -53,6 +101,13 @@ class TaskExecutor:
         self.client_data['client'].request.sendall(message)
 
     def create_room(self, data):
+        """
+        Method takes care to create room if it does not exist
+        and to send the message to all participants in the room.
+
+        @type data: dict
+        @param data: It contains data for the room
+        """
         room_option = data['room']['option']
         rooms = self.client_data['rooms']
         if Room.check_is_exist_room(room_option['uid'], rooms):
@@ -63,6 +118,12 @@ class TaskExecutor:
             self.__create_room(room_option, message)
 
     def add_member_to_room(self, data):
+        """
+        Method takes care to add a member to a group
+
+        @type data: dict
+        @param data: It contains data room
+        """
         room_option = data['room']['option']
         rooms = self.client_data['rooms']
         message = TaskExecutor.encode_message("True")
@@ -74,6 +135,12 @@ class TaskExecutor:
             self.__create_room(room_option, message)
 
     def to_room_message(self, data):
+        """
+        Sends a message to an existing group
+
+        @type data: dict
+        @param data: It contains data for the room and message
+        """
         room_option = data['room']['option']
         message = TaskExecutor.encode_message(data['message'])
         current_room = self.client_data['rooms'][room_option['uid']]

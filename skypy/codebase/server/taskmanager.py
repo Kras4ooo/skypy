@@ -1,16 +1,28 @@
 import json
 from codebase.server.taskexecutor import TaskExecutor
-from codebase.utils.crypto import Crypto
+from codebase.utils.cryptodata import CryptoData
 
 
 class TaskManager:
+    """
+    This class serves as a traffic cop.
+    It sends the tasks to be performed on TaskExecutor and cares to know
+    if you get an exception it to be handled properly
+    and can be logged and forwarded for analysis.
+    """
     def __init__(self, client_data):
         self.data = None
-        self.crypto = Crypto()
+        self.crypto = CryptoData()
         self.task_executor = TaskExecutor()
         self.client_data = client_data
 
     def create_task(self, data):
+        """
+        Create task
+
+        @type data: dict
+        @param data: data for task
+        """
         # self.data = self.crypto.decode(data)
         # TODO: Change this line
         self.data = data.decode('utf-8')
