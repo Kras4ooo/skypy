@@ -4,6 +4,7 @@ class Member:
         self.__request = None
         self.__username = None
         self.__public_key = None
+        self.__private_key = None
 
     @property
     def client_address(self):
@@ -35,7 +36,17 @@ class Member:
 
     @public_key.setter
     def public_key(self, value):
+        value = str(value, "utf-8")
         self.__public_key = value
+
+    @property
+    def private_key(self):
+        return self.__private_key
+
+    @private_key.setter
+    def private_key(self, value):
+        value = str(value, "utf-8")
+        self.__private_key = value
 
     @staticmethod
     def find_member(search_member, members):

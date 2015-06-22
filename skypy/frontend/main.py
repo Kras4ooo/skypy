@@ -13,25 +13,17 @@ class Singleton(type):
         return cls._instances[cls]
 
 class Events(metaclass=Singleton):
-    def __init__(self):
-        self.client = Client()
+    def __init__(self, window):
+        self.client = Client(window=window, username="koki")
         self.client.start()
 
-    @classmethod
-    def push_button_event(cls, main_window_instance):
-        call_function = lambda: cls().push_button_action(main_window_instance)
+    def push_button_event(self, main_window_instance):
+        call_function = lambda: self.push_button_action(main_window_instance)
         main_window_instance.push_button.clicked.connect(call_function)
 
     def push_button_action(self, main_window_instance):
         line_text = main_window_instance.line_edit.text()
-        item = QListWidgetItem(main_window_instance.listWidget)
         self.client.send(line_text, None)
-        received_message = self.client.recv
-        while received_message is None:
-            received_message = self.client.recv
-        print("Message ", received_message)
-        self.client.recv = None
-        item.setText(received_message)
         main_window_instance.line_edit.clear()
 
 
@@ -71,7 +63,8 @@ class MainWindow(object):
         self.push_button = QtWidgets.QPushButton(self.central_widget)
         self.push_button.setGeometry(QtCore.QRect(680, 490, 91, 23))
         self.push_button.setObjectName("pushButton")
-        Events.push_button_event(self)
+        ev = Events(self)
+        ev.push_button_event(self)
 
     def set_tab(self):
         self.tab = QtWidgets.QWidget()

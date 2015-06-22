@@ -14,7 +14,7 @@ class CryptoData:
 
         @type data: dict
         @param data: It contains data message
-        @type pub_key: pubkey
+        @type pub_key: string
         @param pub_key: It contains the key which
         will be used to encrypt the password
         @rtype: dict
@@ -28,9 +28,19 @@ class CryptoData:
                                    AES.MODE_CFB,
                                    random_val_string)
 
+        pub_key = RSA.importKey(pub_key)
+
         data['message'] = encryption_suite.encrypt(data['message'])
+        data['message'] = base64.b64encode(data['message']).decode('utf-8')
+
         data['key_string'] = pub_key.encrypt(random_key_string, 32)
+        data['key_string'] = base64.b64encode(data['key_string'][0])
+        data['key_string'] = data['key_string'].decode('utf-8')
+
         data['val_string'] = pub_key.encrypt(random_val_string, 32)
+        data['val_string'] = base64.b64encode(data['val_string'][0])
+        data['val_string'] = data['val_string'].decode('utf-8')
+
         return data
 
     @staticmethod
@@ -40,12 +50,14 @@ class CryptoData:
 
         @type data: dict
         @param data: It contains data message
-        @type private_key: RSA.generate
+        @type private_key: string
         @param private_key: It contains the key which
         will be used to decrypt the password
         @rtype: dict
         @return:  It contains a dict with the decoded message
         """
+        private_key = RSA.importKey(private_key)
+
         key_string = private_key.decrypt(data['key_string'])
         val_string = private_key.decrypt(data['val_string'])
 
@@ -66,7 +78,9 @@ class CryptoData:
         @return key: random key
         """
         size = 16
-        key = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(size))
+        alphabet = string.ascii_uppercase
+        digits = string.digits
+        key = ''.join(random.choice(alphabet + digits) for _ in range(size))
         key = bytes(key, 'utf-8')
         return key
 
@@ -83,6 +97,7 @@ class CryptoData:
         return private_key, public_key
 
 
+"""
 RSAPriKey, RSAPubKey = CryptoData.generate_keys()
 
 
@@ -91,6 +106,8 @@ data_test = CryptoData.encode(data_test, RSAPubKey)
 print(data_test)
 data_test = CryptoData.decode(data_test, RSAPriKey)
 print(data_test)
+"""
+
 
 """
 message = base64.b64encode('{"dsa":["fdsaf","ffdsa","dfsafdsa"]}'.encode('utf-8'))

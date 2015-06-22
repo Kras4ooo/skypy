@@ -20,11 +20,9 @@ class TaskManager:
         """
         Create task
 
-        @type data: dict
+        @type data: byte
         @param data: data for task
         """
-        # self.data = self.crypto.decode(data)
-        # TODO: Change this line
         self.data = data.decode('utf-8')
         self.data = json.loads(self.data)
         self.client_data['client'].username = self.data['username']

@@ -65,7 +65,7 @@ class TaskExecutor:
         @param data: dictionary containing the message that will be sent
         to all participants in the chat.
         """
-        message = TaskExecutor.encode_message(data['message'])
+        message = TaskExecutor.encode_message(data['message_settings'])
         for member in self.client_data['members']:
             member.request.sendall(message)
 
