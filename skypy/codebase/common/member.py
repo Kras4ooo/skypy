@@ -36,7 +36,7 @@ class Member:
 
     @public_key.setter
     def public_key(self, value):
-        value = str(value, "utf-8")
+        value = value.decode('utf-8')
         self.__public_key = value
 
     @property
@@ -45,7 +45,7 @@ class Member:
 
     @private_key.setter
     def private_key(self, value):
-        value = str(value, "utf-8")
+        value = value.decode('utf-8')
         self.__private_key = value
 
     @staticmethod

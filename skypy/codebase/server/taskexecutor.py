@@ -1,3 +1,5 @@
+import json
+
 from codebase.common.member import Member
 from codebase.common.room import Room
 
@@ -55,7 +57,7 @@ class TaskExecutor:
         @type message: string
         @param message: message
         """
-        return bytes(message, 'utf-8')
+        return bytes(json.dumps(message), 'utf-8')
 
     def broadcast(self, data):
         """

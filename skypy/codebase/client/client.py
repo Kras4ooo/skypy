@@ -25,7 +25,7 @@ class Client(Thread):
         member = Member()
         member.username = username
 
-        public_key, private_key = self.__get_or_generate_key()
+        private_key, public_key = self.__get_or_generate_key()
         member.public_key = public_key
         member.private_key = private_key
         self.members[username] = member
@@ -49,12 +49,14 @@ class Client(Thread):
         data = data.decode('utf-8')
         member = self.members[self.username]
         decrypt_data = CryptoData.decode(data, member.private_key)
-        return decrypt_data
+        message = decrypt_data['message'].decode('utf-8')
+        return message
 
     def run(self):
         while True:
             try:
                 data = self.sock.recv(1024)
+                data = self.receive_message(data)
                 print("Got data: ", data)
                 item = QListWidgetItem(self.window.listWidget)
                 item.setText(str(data))
