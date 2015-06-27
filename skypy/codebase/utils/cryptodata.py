@@ -100,26 +100,3 @@ class CryptoData:
         public_key = new_key.publickey()
         private_key = new_key
         return private_key, public_key
-
-
-"""
-RSAPriKey, RSAPubKey = CryptoData.generate_keys()
-
-
-data_test = {"message": "Zdravei PavkaZdravei Pavka"}
-data_test = CryptoData.encode(data_test, RSAPubKey)
-print(data_test)
-data_test = CryptoData.decode(data_test, RSAPriKey)
-print(data_test)
-"""
-
-
-"""
-message = base64.b64encode('{"dsa":["fdsaf","ffdsa","dfsafdsa"]}'.encode('utf-8'))
-print(message)
-enc = RSAPubKey.encrypt(message, 32)
-print(enc)
-m = base64.b64decode(RSAPriKey.decrypt(enc)).decode("utf-8")
-print(m)
-print(json.loads(m)['dsa'][0])
-"""
