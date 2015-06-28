@@ -81,7 +81,8 @@ class TaskExecutor:
         """
         message = TaskExecutor.encode_message(data['message_settings'])
         for member in self.client_data['members']:
-            member.request.sendall(message)
+            if self.__ignore_sender_user(member):
+                member.request.sendall(message)
 
     def to_user(self, data):
         """
@@ -161,3 +162,8 @@ class TaskExecutor:
         current_room = self.client_data['rooms'][room_option['uid']]
         for member in current_room.members:
             member.request.sendall(message)
+
+    def __ignore_sender_user(self, member):
+        if member.request != self.client_data['request']:
+            return True
+        return False

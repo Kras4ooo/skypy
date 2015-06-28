@@ -91,26 +91,26 @@ class TestSkyPyServer(unittest.TestCase):
         client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_two.connect(sock)
 
-        data = {
+        data_one = {
             'username': 'test_one',
             'message': "hi test_two",
             'to': 'broadcast'
         }
 
-        data = self.__encode_message(data)
-        self.client.send(bytes(json.dumps(data), "utf-8"))
+        data_one = self.__encode_message(data_one)
+        self.client.send(bytes(json.dumps(data_one), "utf-8"))
 
-        data = {
+        data_two = {
             'username': 'test_two',
             'message': "hi test_one",
             'to': 'broadcast'
         }
 
-        data = self.__encode_message(data)
-        client_two.send(bytes(json.dumps(data), "utf-8"))
+        data_two = self.__encode_message(data_two)
+        client_two.send(bytes(json.dumps(data_two), "utf-8"))
 
-        received_two = client_two.recv(1024)
         received_one = self.client.recv(1024)
+        received_two = client_two.recv(1024)
 
         self.assertEqual("hi test_one", self.__receive_message(received_one))
         self.assertEqual("hi test_two", self.__receive_message(received_two))
