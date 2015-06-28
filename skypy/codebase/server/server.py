@@ -14,13 +14,13 @@ class SkyPyServer(socketserver.BaseRequestHandler):
 
     def handle(self):
         self.__set_member()
-        print(self.members)
+        # TODO: Remove print(self.members)
         client_data = self.__get_client_data()
         task_manager = TaskManager(client_data)
         while True:
             data = self.__receive_data()
             if not data:
-                print("Remove")
+                # TODO: Remove print("Remove")
                 self.__remove_member()
                 return
             task_manager.create_task(data)

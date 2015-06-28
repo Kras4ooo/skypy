@@ -38,23 +38,35 @@ class TaskExecutor:
                 getattr(self, data['room']['option']['action'])(data)
             else:
                 getattr(self, data['to'])(data)
-        except AttributeError:
-            try:
-                getattr(self, data['to'])()
-            except AttributeError as attr_err:
-                print(attr_err)
-                # TODO: Send to Sentry
+        except AttributeError as attr_err:
+            # TODO: REMOVE print(attr_err)
+            message = {"error": "AttributeError"}
+            message = TaskExecutor.encode_message(message)
+            self.client_data['request'].sendall(message)
+            # TODO: Send to Sentry
 
-    def initialize(self):
-        # TODO: Return may be response to user for (ok message)
-        return True
+    def initialize(self, data):
+        """
+        At the beginning of each user sends its public key to all the others
+        and wants accordingly and their public keys.
+
+        @type data: dict
+        @param data: data which contains public key
+        """
+        public_key = data['public_key']
+        message = {"pub_key": public_key}
+        message = TaskExecutor.encode_message(message)
+        for member in self.client_data['members']:
+            member.request.sendall(message)
+
+        # TODO: Ask all public keys
 
     @staticmethod
     def encode_message(message):
         """
         Coded message to byte code
 
-        @type message: string
+        @type message: dict
         @param message: message
         """
         return bytes(json.dumps(message), 'utf-8')
@@ -73,7 +85,8 @@ class TaskExecutor:
 
     def to_user(self, data):
         """
-        The method takes care to send a message to the particular user in the chat
+        The method takes care to send a message to the particular user
+        in the chat
 
         @type data: dict
         @param data: dictionary containing the message that will be sent

@@ -1,14 +1,24 @@
 import json
+import os
 import unittest
 import base64
 
 from codebase.utils.cryptodata import CryptoData
 
+
 class TestCryptoData(unittest.TestCase):
     def setUp(self):
-        with open('test_cryptodata/public.pub') as f:
+        pub_key = os.path.join(
+            os.path.dirname(__file__),
+            '..{0}test_keys{0}public.pub'.format(os.path.sep)
+        )
+        private_key = os.path.join(
+            os.path.dirname(__file__),
+            '..{0}test_keys{0}private.pem'.format(os.path.sep)
+        )
+        with open(pub_key) as f:
             self.public_key = f.read()
-        with open('test_cryptodata/private.pem') as f:
+        with open(private_key) as f:
             self.private_key = f.read()
         self.data = {"message": "Test"}
         self.new_data = CryptoData.encode(self.data, self.public_key)
