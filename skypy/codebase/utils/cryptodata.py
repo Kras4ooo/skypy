@@ -1,5 +1,4 @@
 import base64
-import json
 import random
 import string
 from Crypto.PublicKey import RSA
@@ -7,6 +6,19 @@ from Crypto.Cipher import AES
 
 
 class CryptoData:
+
+    @staticmethod
+    def encode_base64(data):
+        data = bytes(data, 'utf-8')
+        data = base64.b64encode(data)
+        data = data.decode('utf-8')
+        return data
+
+    @staticmethod
+    def decode_base64(data):
+        data = base64.b64decode(data)
+        return data
+
     @staticmethod
     def encode(data, pub_key):
         """
@@ -58,7 +70,6 @@ class CryptoData:
         """
         private_key = RSA.importKey(private_key)
 
-        data = json.loads(data)
         data['key_string'] = base64.b64decode(data['key_string'])
         data['val_string'] = base64.b64decode(data['val_string'])
         data['message'] = base64.b64decode(data['message'])

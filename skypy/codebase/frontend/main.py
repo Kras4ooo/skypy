@@ -23,6 +23,8 @@ class Events(metaclass=Singleton):
 
     def push_button_action(self, main_window_instance):
         line_text = main_window_instance.line_edit.text()
+        item = QListWidgetItem(main_window_instance.listWidget)
+        item.setText(line_text)
         self.client.send(line_text, None)
         main_window_instance.line_edit.clear()
 

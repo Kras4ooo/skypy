@@ -63,13 +63,32 @@ class TestSkyPyServer(unittest.TestCase):
             'username': 'test',
             'to': 'initialize'
         })
+
+        host, port = "localhost", 9999
+        sock = (host, port)
+
+        client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_two.connect(sock)
+
+        data_two = json.dumps({
+            'public_key': 'test_key',
+            'username': 'test',
+            'to': 'initialize'
+        })
+
+        client_two.send(bytes(data_two, "utf-8"))
         self.client.send(bytes(data, "utf-8"))
 
         received = self.client.recv(1024)
         received = received.decode('utf-8')
         received = json.loads(received)
 
+        # received_two = client_two.recv(1024)
+        # received_two = received_two.decode('utf-8')
+        # received_two = json.loads(received_two)
+
         self.assertEqual(received['pub_key'], "test_key")
+        # self.assertEqual(received_two['pub_key'], "test_key")
 
     def test_not_exist_method(self):
         data = json.dumps({
@@ -109,6 +128,42 @@ class TestSkyPyServer(unittest.TestCase):
         data_two = self.__encode_message(data_two)
         client_two.send(bytes(json.dumps(data_two), "utf-8"))
 
+        received_one = self.client.recv(1024)
+        received_two = client_two.recv(1024)
+
+        self.assertEqual("hi test_one", self.__receive_message(received_one))
+        self.assertEqual("hi test_two", self.__receive_message(received_two))
+
+        client_two.close()
+
+    def _test_to_user(self):
+        host, port = "localhost", 9999
+        sock = (host, port)
+
+        client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_two.connect(sock)
+
+        data_one = {
+            'username': 'test_one',
+            'message': "hi test_two",
+            'to': 'to_user',
+            'to_user': 'test_two'
+        }
+
+        data_one = self.__encode_message(data_one)
+        self.client.send(bytes(json.dumps(data_one), "utf-8"))
+
+        data_two = {
+            'username': 'test_two',
+            'message': "hi test_one",
+            'to': 'to_user',
+            'to_user': 'test_one'
+        }
+
+        data_two = self.__encode_message(data_two)
+        client_two.send(bytes(json.dumps(data_two), "utf-8"))
+        print(self.client.recv(1024))
+        print(client_two.recv(1024))
         received_one = self.client.recv(1024)
         received_two = client_two.recv(1024)
 

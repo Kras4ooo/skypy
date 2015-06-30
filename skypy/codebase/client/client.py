@@ -5,6 +5,7 @@ from threading import Thread
 
 from PyQt5.QtWidgets import QListWidgetItem
 from codebase.common.member import Member
+from codebase.common.message_format import MessageFormat
 from codebase.utils.cryptodata import CryptoData
 
 
@@ -18,7 +19,18 @@ class Client(Thread):
         self.username = None
 
         self.__set_my_member(kwargs['username'])
+        self.__initialize_member()
         super(Client, self).__init__(*args, kwargs=kwargs)
+
+    def __initialize_member(self):
+        pub_key = self.members[self.username].public_key
+        encode_pub_key = CryptoData.encode_base64(pub_key)
+
+        data = MessageFormat.initialize_message_client(
+            self.username,
+            encode_pub_key
+        )
+        self.sock.sendall(data)
 
     def __set_my_member(self, username):
         self.username = username
@@ -48,9 +60,30 @@ class Client(Thread):
     def receive_message(self, data):
         data = data.decode('utf-8')
         member = self.members[self.username]
+        data = json.loads(data)
+        if 'initialize' in data:
+            self.__initialize_messages(data)
+            return True  # Initialize Member
         decrypt_data = CryptoData.decode(data, member.private_key)
         message = decrypt_data['message'].decode('utf-8')
         return message
+
+    def __initialize_messages(self, data):
+        if data['initialize']:
+            if 'ask' in data:
+                pub_key = self.members[self.username].public_key
+                encode_pub_key = CryptoData.encode_base64(pub_key)
+
+                data = MessageFormat.initialize_ask_message_client(
+                    self.members[self.username].username,
+                    data['user'],
+                    encode_pub_key
+                )
+                self.sock.sendall(data)
+                return
+            from_user = data['from_user']
+            pub_key = CryptoData.decode_base64(data['pub_key'])
+            self.__set_member(from_user, pub_key)
 
     def run(self):
         while True:
@@ -58,13 +91,12 @@ class Client(Thread):
                 data = self.sock.recv(1024)
                 data = self.receive_message(data)
                 print("Got data: ", data)
+                if data is True:
+                    continue
                 item = QListWidgetItem(self.window.listWidget)
                 item.setText(str(data))
             except socket.timeout:
                 continue
-            except Exception as ex:
-                print(ex)
-                break
         self.sock.close()
 
     def format_message(self, message):

@@ -1,6 +1,7 @@
 import json
 
 from codebase.common.member import Member
+from codebase.common.message_format import MessageFormat
 from codebase.common.room import Room
 
 
@@ -39,11 +40,15 @@ class TaskExecutor:
             else:
                 getattr(self, data['to'])(data)
         except AttributeError as attr_err:
-            # TODO: REMOVE print(attr_err)
+            # TODO REMOVE print(attr_err)
             message = {"error": "AttributeError"}
             message = TaskExecutor.encode_message(message)
             self.client_data['request'].sendall(message)
             # TODO: Send to Sentry
+
+    def sendall(self, client, message):
+        if self.__ignore_sender_user(client):
+            client.request.sendall(message)
 
     def initialize(self, data):
         """
@@ -54,12 +59,29 @@ class TaskExecutor:
         @param data: data which contains public key
         """
         public_key = data['public_key']
-        message = {"pub_key": public_key}
+        username = self.client_data['client'].username
+        data = {'username': username, 'public_key': public_key}
+
+        message = MessageFormat.initialize_message_server(**data)
+        ask_public_key = MessageFormat.initialize_ask_message_server(**data)
+
         message = TaskExecutor.encode_message(message)
+        ask_public_key = TaskExecutor.encode_message(ask_public_key)
+
         for member in self.client_data['members']:
-            member.request.sendall(message)
+            self.sendall(member, message)
+            self.sendall(member, ask_public_key)
 
         # TODO: Ask all public keys
+
+    def initialize_ask_key(self, data):
+        members = self.client_data['members']
+        member = Member.find_member(data['to_user'], members)
+        send_message = MessageFormat.initialize_message_server(
+            self.client_data['client'].username,
+            data['public_key']
+        )
+        member.request.sendall(TaskExecutor.encode_message(send_message))
 
     @staticmethod
     def encode_message(message):
@@ -81,8 +103,7 @@ class TaskExecutor:
         """
         message = TaskExecutor.encode_message(data['message_settings'])
         for member in self.client_data['members']:
-            if self.__ignore_sender_user(member):
-                member.request.sendall(message)
+            self.sendall(member, message)
 
     def to_user(self, data):
         """
@@ -94,11 +115,11 @@ class TaskExecutor:
         to the particular user.
         """
         members = self.client_data['members']
+        print(data['to_user'])
         to_member = Member.find_member(data['to_user'], members)
-        message = TaskExecutor.encode_message(data['message'])
-
+        print(vars(self.client_data['members'][0]))
+        message = TaskExecutor.encode_message(data['message_settings'])
         to_member.request.sendall(message)
-        self.client_data['client'].request.sendall()
 
     # Rooms options
     def __create_room(self, room_option, message):
