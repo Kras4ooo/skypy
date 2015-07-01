@@ -20,6 +20,13 @@ class CryptoData:
         return data
 
     @staticmethod
+    def encode_only_rsa(data, pub_key):
+        pub_key = RSA.importKey(pub_key)
+        data = pub_key.encrypt(data.encode('utf-8'), 32)
+        data = base64.b64encode(data[0]).decode('utf-8')
+        return data
+
+    @staticmethod
     def encode(data, pub_key):
         """
         Method encodes the message using the AES and RSA

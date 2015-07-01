@@ -2,19 +2,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QListWidgetItem
 from codebase.client.client import Client
+from codebase.utils.singleton import Singleton
 
-
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
 
 class Events(metaclass=Singleton):
     def __init__(self, window):
-        self.client = Client(window=window, username="koki")
+        self.client = Client(username="koki")
+        Client.WINDOW = window
         self.client.start()
 
     def push_button_event(self, main_window_instance):
@@ -34,6 +28,7 @@ class MainWindow(object):
         self.central_widget = None
         self.list_view = None
         self.tab_widget = None
+        self.model = None
 
     def setup_ui(self, window):
         window.setObjectName("MainWindow")
@@ -82,11 +77,9 @@ class MainWindow(object):
         self.list_view.setGeometry(QtCore.QRect(10, 10, 256, 451))
         self.list_view.setObjectName("listView")
 
-        model = QStandardItemModel(self.list_view)
-        item = QStandardItem("test")
-        model.appendRow(item)
+        self.model = QStandardItemModel(self.list_view)
 
-        self.list_view.setModel(model)
+        self.list_view.setModel(self.model)
 
     def set_tab_widget(self):
         self.tab_widget = QtWidgets.QTabWidget(self.central_widget)

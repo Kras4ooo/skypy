@@ -3,6 +3,7 @@ import json
 from codebase.common.member import Member
 from codebase.common.message_format import MessageFormat
 from codebase.common.room import Room
+from codebase.server.db.models import User
 
 
 class TaskExecutor:
@@ -50,6 +51,20 @@ class TaskExecutor:
         if self.__ignore_sender_user(client):
             client.request.sendall(message)
 
+    def register_user(self, data):
+        user = User()
+        response = user.register_user(data)
+        message = MessageFormat.register_user_server(response)
+        message = TaskExecutor.encode_message(message)
+        self.client_data['request'].sendall(message)
+
+    def login_user(self, data):
+        user = User()
+        response = user.login_user(data)
+        message = MessageFormat.login_user_server(response)
+        message = TaskExecutor.encode_message(message)
+        self.client_data['request'].sendall(message)
+
     def initialize(self, data):
         """
         At the beginning of each user sends its public key to all the others
@@ -60,6 +75,7 @@ class TaskExecutor:
         """
         public_key = data['public_key']
         username = self.client_data['client'].username
+        self.client_data['client'].activated = True
         data = {'username': username, 'public_key': public_key}
 
         message = MessageFormat.initialize_message_server(**data)
@@ -185,6 +201,7 @@ class TaskExecutor:
             member.request.sendall(message)
 
     def __ignore_sender_user(self, member):
-        if member.request != self.client_data['request']:
+        if (member.request != self.client_data['request']
+            or member.activated is False):
             return True
         return False

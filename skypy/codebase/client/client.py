@@ -2,6 +2,7 @@ import os
 import json
 import socket
 from threading import Thread
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from PyQt5.QtWidgets import QListWidgetItem
 from codebase.common.member import Member
@@ -10,12 +11,13 @@ from codebase.utils.cryptodata import CryptoData
 
 
 class Client(Thread):
+    HOST, PORT = "localhost", 9999
+    WINDOW = None
+
     def __init__(self, *args, **kwargs):
-        host, port = "localhost", 9999
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host, port))
+        self.sock.connect((self.HOST, self.PORT))
         self.members = {}
-        self.window = kwargs['window']
         self.username = None
 
         self.__set_my_member(kwargs['username'])
@@ -37,7 +39,7 @@ class Client(Thread):
         member = Member()
         member.username = username
 
-        private_key, public_key = self.__get_or_generate_key()
+        private_key, public_key = Client.get_or_generate_key()
         member.public_key = public_key
         member.private_key = private_key
         self.members[username] = member
@@ -47,6 +49,30 @@ class Client(Thread):
         member.username = username
         member.public_key = public_key
         self.members[username] = member
+
+    @staticmethod
+    def register_user(data):
+        data['password'] = CryptoData.encode_only_rsa(
+            data['password'],
+            data['public_key']
+        )
+        message = MessageFormat.register_user_client(data)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((Client.HOST, Client.PORT))
+        sock.sendall(message)
+        return sock
+
+    @staticmethod
+    def login_user(data):
+        data['password'] = CryptoData.encode_only_rsa(
+            data['password'],
+            data['public_key']
+        )
+        message = MessageFormat.login_user_client(data)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((Client.HOST, Client.PORT))
+        sock.sendall(message)
+        return sock
 
     def add_member(self, data):
         new_user = data['username']
@@ -68,6 +94,11 @@ class Client(Thread):
         message = decrypt_data['message'].decode('utf-8')
         return message
 
+    def __append_to_user_list(self, member):
+        item = QStandardItem(member.username)
+        self.WINDOW.model.appendRow(item)
+        self.WINDOW.list_view.setModel(self.WINDOW.model)
+
     def __initialize_messages(self, data):
         if data['initialize']:
             if 'ask' in data:
@@ -84,6 +115,7 @@ class Client(Thread):
             from_user = data['from_user']
             pub_key = CryptoData.decode_base64(data['pub_key'])
             self.__set_member(from_user, pub_key)
+            self.__append_to_user_list(self.members[from_user])
 
     def run(self):
         while True:
@@ -93,7 +125,7 @@ class Client(Thread):
                 print("Got data: ", data)
                 if data is True:
                     continue
-                item = QListWidgetItem(self.window.listWidget)
+                item = QListWidgetItem(self.WINDOW.listWidget)
                 item.setText(str(data))
             except socket.timeout:
                 continue
@@ -117,7 +149,8 @@ class Client(Thread):
         data['message_settings'] = CryptoData.encode(message_settings, pub_key)
         return data
 
-    def __get_or_generate_key(self):
+    @staticmethod
+    def get_or_generate_key():
         path_dir = os.path.isdir("keys")
         if path_dir:
             private_key_path = os.path.isfile('keys/private.pem')
@@ -128,12 +161,13 @@ class Client(Thread):
                 with open('keys/public.pub', 'rb') as public_file:
                     public_key = public_file.read()
             else:
-                private_key, public_key = self.__generate_keys()
+                private_key, public_key = Client.generate_keys()
         else:
-            private_key, public_key = self.__generate_keys()
+            private_key, public_key = Client.generate_keys()
         return private_key, public_key
 
-    def __generate_keys(self):
+    @staticmethod
+    def generate_keys():
         private_key, public_key = CryptoData.generate_keys()
         os.mkdir("keys")
         private_file = open('keys/private.pem', 'wb')

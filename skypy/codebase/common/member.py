@@ -5,6 +5,7 @@ class Member:
         self.__username = None
         self.__public_key = None
         self.__private_key = None
+        self.__activated = False
 
     @property
     def client_address(self):
@@ -47,6 +48,14 @@ class Member:
     def private_key(self, value):
         value = value.decode('utf-8')
         self.__private_key = value
+
+    @property
+    def activated(self):
+        return self.__activated
+
+    @activated.setter
+    def activated(self, value):
+        self.__activated = value
 
     @staticmethod
     def find_member(search_member, members):
