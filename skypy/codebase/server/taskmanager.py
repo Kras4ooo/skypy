@@ -23,10 +23,12 @@ class TaskManager:
         @type data: byte
         @param data: data for task
         """
-        self.data = data.decode('utf-8')
-        self.data = json.loads(self.data)
+        self.data = json.loads(data)
         self.client_data['client'].username = self.data['username']
         self.task_executor.execute(self.data, self.client_data)
+
+    def delete_user_task(self):
+        self.task_executor.delete_user()
 
     def fail_task(self):
         pass

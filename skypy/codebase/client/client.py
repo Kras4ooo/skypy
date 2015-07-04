@@ -2,9 +2,11 @@ import os
 import json
 import socket
 from threading import Thread
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from PyQt5.QtWidgets import QListWidgetItem
+import struct
 from codebase.common.member import Member
 from codebase.common.message_format import MessageFormat
 from codebase.utils.cryptodata import CryptoData
@@ -32,6 +34,7 @@ class Client(Thread):
             self.username,
             encode_pub_key
         )
+        data = Client.format_message_encode(data)
         self.sock.sendall(data)
 
     def __set_my_member(self, username):
@@ -59,7 +62,8 @@ class Client(Thread):
         message = MessageFormat.register_user_client(data)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((Client.HOST, Client.PORT))
-        sock.sendall(message)
+        data = Client.format_message_encode(message)
+        sock.sendall(data)
         return sock
 
     @staticmethod
@@ -71,7 +75,8 @@ class Client(Thread):
         message = MessageFormat.login_user_client(data)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((Client.HOST, Client.PORT))
-        sock.sendall(message)
+        data = Client.format_message_encode(message)
+        sock.sendall(data)
         return sock
 
     def add_member(self, data):
@@ -81,15 +86,24 @@ class Client(Thread):
 
     def send(self, message, to):
         message = self.format_message(message)
-        self.sock.send(message)
+        data = Client.format_message_encode(message)
+        self.sock.sendall(data)
+
+    @staticmethod
+    def format_message_encode(message):
+        message = struct.pack("i", len(message)) + message
+        return message
 
     def receive_message(self, data):
-        data = data.decode('utf-8')
         member = self.members[self.username]
+        print(data)
         data = json.loads(data)
         if 'initialize' in data:
             self.__initialize_messages(data)
             return True  # Initialize Member
+        if 'delete_user_name' in data:
+            self.__delete_user(data)
+            return True  # Delete Member
         decrypt_data = CryptoData.decode(data, member.private_key)
         message = decrypt_data['message'].decode('utf-8')
         return message
@@ -98,6 +112,15 @@ class Client(Thread):
         item = QStandardItem(member.username)
         self.WINDOW.model.appendRow(item)
         self.WINDOW.list_view.setModel(self.WINDOW.model)
+
+    def __delete_user(self, data):
+        delete_username = data['delete_user_name']
+        member = Member.find_member_dict(delete_username, self.members)
+        del self.members[member]
+        list_model = self.WINDOW.list_view.model()
+        item = list_model.findItems(delete_username, Qt.MatchExactly)
+        index = item[0].index().row()
+        self.WINDOW.list_view.model().removeRow(index)
 
     def __initialize_messages(self, data):
         if data['initialize']:
@@ -110,6 +133,7 @@ class Client(Thread):
                     data['user'],
                     encode_pub_key
                 )
+                data = Client.format_message_encode(data)
                 self.sock.sendall(data)
                 return
             from_user = data['from_user']
@@ -117,10 +141,23 @@ class Client(Thread):
             self.__set_member(from_user, pub_key)
             self.__append_to_user_list(self.members[from_user])
 
+    def receive(self):
+        try:
+            size = struct.unpack("i", self.sock.recv(struct.calcsize("i")))
+            data = ""
+            while len(data) < size[0]:
+                msg = self.sock.recv(size[0] - len(data))
+                if not msg:
+                    return None
+                data += msg.decode('utf-8')
+        except OSError as e:
+            return False
+        return data
+
     def run(self):
         while True:
             try:
-                data = self.sock.recv(1024)
+                data = self.receive()
                 data = self.receive_message(data)
                 print("Got data: ", data)
                 if data is True:

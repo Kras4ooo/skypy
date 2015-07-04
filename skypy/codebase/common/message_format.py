@@ -77,3 +77,10 @@ class MessageFormat:
             'is_correct': is_correct,
         }
         return data
+
+    @staticmethod
+    def delete_user_server(username):
+        data = {
+            'delete_user_name': username
+        }
+        return data

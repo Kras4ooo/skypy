@@ -13,7 +13,9 @@ class Events(metaclass=Singleton):
 
     def push_button_event(self, main_window_instance):
         call_function = lambda: self.push_button_action(main_window_instance)
+        call_function2 = lambda: self.on_listView_clicked()
         main_window_instance.push_button.clicked.connect(call_function)
+        main_window_instance.list_view.clicked.connect(call_function2)
 
     def push_button_action(self, main_window_instance):
         line_text = main_window_instance.line_edit.text()
@@ -21,6 +23,9 @@ class Events(metaclass=Singleton):
         item.setText(line_text)
         self.client.send(line_text, None)
         main_window_instance.line_edit.clear()
+
+    def on_listView_clicked(self):
+        print("EHEH")
 
 
 class MainWindow(object):

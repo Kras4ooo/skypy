@@ -1,4 +1,5 @@
 import json
+import struct
 
 from codebase.common.member import Member
 from codebase.common.message_format import MessageFormat
@@ -47,9 +48,28 @@ class TaskExecutor:
             self.client_data['request'].sendall(message)
             # TODO: Send to Sentry
 
+    @staticmethod
+    def encode_message(message):
+        """
+        Coded message to byte code
+
+        @type message: dict
+        @param message: message
+        """
+        message = bytes(json.dumps(message), 'utf-8')
+        message = struct.pack("i", len(message)) + message
+        return message
+
     def sendall(self, client, message):
         if self.__ignore_sender_user(client):
             client.request.sendall(message)
+
+    def delete_user(self):
+        delete_user = self.client_data['client'].username
+        message = MessageFormat.delete_user_server(delete_user)
+        message = TaskExecutor.encode_message(message)
+        for member in self.client_data['members']:
+            self.sendall(member, message)
 
     def register_user(self, data):
         user = User()
@@ -97,17 +117,8 @@ class TaskExecutor:
             self.client_data['client'].username,
             data['public_key']
         )
-        member.request.sendall(TaskExecutor.encode_message(send_message))
-
-    @staticmethod
-    def encode_message(message):
-        """
-        Coded message to byte code
-
-        @type message: dict
-        @param message: message
-        """
-        return bytes(json.dumps(message), 'utf-8')
+        message = TaskExecutor.encode_message(send_message)
+        member.request.sendall(message)
 
     def broadcast(self, data):
         """

@@ -62,3 +62,9 @@ class Member:
         for member in members:
             if member.username == search_member:
                 return member
+
+    @staticmethod
+    def find_member_dict(search_member, members):
+        for key, value in members.items():
+            if value.username == search_member:
+                return key

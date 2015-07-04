@@ -1,5 +1,6 @@
 import socketserver
 import errno
+import struct
 from codebase.common.member import Member
 from codebase.server.taskmanager import TaskManager
 
@@ -21,6 +22,7 @@ class SkyPyServer(socketserver.BaseRequestHandler):
             data = self.__receive_data()
             if not data:
                 # TODO: Remove print("Remove")
+                task_manager.delete_user_task()
                 self.__remove_member()
                 return
             task_manager.create_task(data)
@@ -33,9 +35,22 @@ class SkyPyServer(socketserver.BaseRequestHandler):
         self.member = member
         self.members.append(member)
 
+    def __receive(self):
+        try:
+            size = struct.unpack("i", self.request.recv(struct.calcsize("i")))
+            data = ""
+            while len(data) < size[0]:
+                msg = self.request.recv(size[0] - len(data))
+                if not msg:
+                    return None
+                data += msg.decode('utf-8')
+        except OSError as e:
+            return False
+        return data
+
     def __receive_data(self):
         try:
-            data = self.request.recv(1024)
+            data = self.__receive()
         except OSError as ex:
             if ex.errno == errno.ECONNRESET:
                 self.__remove_member()
