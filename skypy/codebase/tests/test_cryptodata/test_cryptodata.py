@@ -37,7 +37,6 @@ class TestCryptoData(unittest.TestCase):
         self.assertTrue(base64.b64decode(self.new_data['key_string']))
 
     def test_decode(self):
-        self.new_data = json.dumps(self.new_data)
         self.new_data = CryptoData.decode(self.new_data, self.private_key)
         self.assertNotIn('key_string', self.new_data.keys())
         self.assertNotIn('val_string', self.new_data.keys())

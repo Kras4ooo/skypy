@@ -8,6 +8,7 @@
 import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import struct
 from codebase.client.client import Client
 from codebase.frontend.main import MainWindow
 from codebase.utils.singleton import Singleton
@@ -23,15 +24,28 @@ class Events(metaclass=Singleton):
         main_window_instance.pushButton_2.clicked.connect(call_function_register)
         main_window_instance.pushButton.clicked.connect(call_function_login)
 
+    def receive(self, sock):
+        try:
+            size = struct.unpack("i", sock.recv(struct.calcsize("i")))
+            data = ""
+            while len(data) < size[0]:
+                msg = sock.recv(size[0] - len(data))
+                if not msg:
+                    return None
+                data += msg.decode('utf-8')
+        except OSError as e:
+            return False
+        return data
+
     def push_register_action(self, main_window_instance):
         data = {
             'first_name': main_window_instance.lineEdit_3.text(),
             'username': main_window_instance.lineEdit_4.text(),
             'password': main_window_instance.lineEdit_5.text(),
-            'public_key': Client.get_or_generate_key()[1].decode('utf-8'),
+            'public_key': Client.get_or_generate_key()[1].decode('utf-8')
         }
         sock = Client.register_user(data)
-        response = sock.recv(1024).decode('utf-8')
+        response = self.receive(sock)
         response = json.loads(response)
 
         if response['is_success'] is True:
@@ -43,10 +57,11 @@ class Events(metaclass=Singleton):
         data = {
             'username': main_window_instance.lineEdit.text(),
             'password': main_window_instance.lineEdit_2.text(),
-            'public_key': Client.get_or_generate_key()[1].decode('utf-8'),
+            'public_key': Client.get_or_generate_key()[1].decode('utf-8')
         }
+
         sock = Client.login_user(data)
-        response = sock.recv(1024).decode('utf-8')
+        response = self.receive(sock)
         response = json.loads(response)
 
         if response['is_correct'] is True:
@@ -55,12 +70,10 @@ class Events(metaclass=Singleton):
             """
             main_window_instance.label_7.setText("Correct User")
             main_window_instance.Form.close()
-            main_window = QtWidgets.QMainWindow()
-            w = MainWindow()
-            w.setup_ui(main_window)
-            app.setActiveWindow(main_window)
-            main_window.show()
-            app.exec()
+            Form = QtWidgets.QMainWindow()
+            ui = MainWindow()
+            ui.setup_ui(Form)
+            Form.show()
         else:
             main_window_instance.label_7.setText("Not Correct")
 

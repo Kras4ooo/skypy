@@ -22,8 +22,8 @@ class SkyPyServer(socketserver.BaseRequestHandler):
             data = self.__receive_data()
             if not data:
                 # TODO: Remove print("Remove")
-                task_manager.delete_user_task()
                 self.__remove_member()
+                task_manager.delete_user_task()
                 return
             task_manager.create_task(data)
 
@@ -46,6 +46,8 @@ class SkyPyServer(socketserver.BaseRequestHandler):
                 data += msg.decode('utf-8')
         except OSError as e:
             return False
+        except struct.error as sterr:
+            data = ''
         return data
 
     def __receive_data(self):
@@ -63,7 +65,8 @@ class SkyPyServer(socketserver.BaseRequestHandler):
             'request': self.request,
             'client': self.member,
             'members': self.members,
-            'rooms': self.rooms
+            'rooms': self.rooms,
+            'client_address': self.client_address
         }
 
     def __remove_member(self):

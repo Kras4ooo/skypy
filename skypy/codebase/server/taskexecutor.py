@@ -1,4 +1,5 @@
 import json
+import socket
 import struct
 
 from codebase.common.member import Member
@@ -47,6 +48,10 @@ class TaskExecutor:
             message = TaskExecutor.encode_message(message)
             self.client_data['request'].sendall(message)
             # TODO: Send to Sentry
+        except socket.error:
+            message = {"error": "socket.error"}
+            message = TaskExecutor.encode_message(message)
+            self.client_data['request'].sendall(message)
 
     @staticmethod
     def encode_message(message):
@@ -142,9 +147,7 @@ class TaskExecutor:
         to the particular user.
         """
         members = self.client_data['members']
-        print(data['to_user'])
         to_member = Member.find_member(data['to_user'], members)
-        print(vars(self.client_data['members'][0]))
         message = TaskExecutor.encode_message(data['message_settings'])
         to_member.request.sendall(message)
 

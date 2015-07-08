@@ -30,7 +30,7 @@ class MessageFormat:
             'username': data['username'],
             'password': data['password'],
             'public_key': data['public_key'],
-            'to': 'register_user',
+            'to': 'register_user'
         })
         data = bytes(data, 'utf-8')
         return data
@@ -40,9 +40,42 @@ class MessageFormat:
         data = json.dumps({
             'username': data['username'],
             'password': data['password'],
-            'to': 'login_user',
+            'to': 'login_user'
         })
         data = bytes(data, 'utf-8')
+        return data
+
+    @staticmethod
+    def to_all_client(username, message):
+        data = {
+            'username': username,
+            'message': message,
+            'to': 'broadcast'
+        }
+        return data
+
+    @staticmethod
+    def to_user_client(username, message, to_user):
+        data = {
+            'username': username,
+            'message': message,
+            'to': 'to_user',
+            'to_user': to_user
+        }
+        return data
+
+    @staticmethod
+    def to_user_send_file_client(username, file_bytes,
+                                 to_user, file_extension,
+                                 is_ready):
+        data = {
+            'username': username,
+            'message': file_bytes,
+            'to': 'to_user',
+            'to_user': to_user,
+            'is_ready': is_ready,
+            'ext': file_extension
+        }
         return data
 
     @staticmethod
@@ -57,8 +90,8 @@ class MessageFormat:
     @staticmethod
     def initialize_ask_message_server(username, public_key):
         data = {
-            "initialize": True,
-            "ask": True,
+            'initialize': True,
+            'ask': True,
             'user': username,
             'pub_key': public_key
         }
@@ -67,14 +100,14 @@ class MessageFormat:
     @staticmethod
     def register_user_server(is_success):
         data = {
-            'is_success': is_success,
+            'is_success': is_success
         }
         return data
 
     @staticmethod
     def login_user_server(is_correct):
         data = {
-            'is_correct': is_correct,
+            'is_correct': is_correct
         }
         return data
 

@@ -4,14 +4,15 @@ import socket
 import socketserver
 import threading
 import unittest
+import struct
 from codebase.server.server import SkyPyServer
 from codebase.utils.cryptodata import CryptoData
 
 
 class TestSkyPyServer(unittest.TestCase):
     def setUp(self):
-        host, port = "localhost", 9999
-        sock = (host, port)
+        self.host, self.port = "localhost", 9998
+        sock = (self.host, self.port)
         self.server = socketserver.ThreadingTCPServer(sock, SkyPyServer)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.start()
@@ -51,11 +52,29 @@ class TestSkyPyServer(unittest.TestCase):
         return private_key
 
     def __receive_message(self, data):
-        data = data.decode('utf-8')
+        data = json.loads(data)
         private_key = self.__get_private_key().decode('utf-8')
         decrypt_data = CryptoData.decode(data, private_key)
         message = decrypt_data['message'].decode('utf-8')
         return message
+
+    def __data_pack(self, message):
+        message = struct.pack("i", len(message)) + message
+        return message
+
+    def __receive(self, cs):
+        try:
+            size = struct.unpack("i", cs.recv(struct.calcsize("i")))
+            data = ""
+            while len(data) < size[0]:
+                msg = cs.recv(size[0] - len(data))
+                if not msg:
+                    return None
+                data += msg.decode('utf-8')
+        except OSError as e:
+            print(e)
+            return False
+        return data
 
     def test_client_initialize(self):
         data = json.dumps({
@@ -64,8 +83,7 @@ class TestSkyPyServer(unittest.TestCase):
             'to': 'initialize'
         })
 
-        host, port = "localhost", 9999
-        sock = (host, port)
+        sock = (self.host, self.port)
 
         client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_two.connect(sock)
@@ -76,36 +94,30 @@ class TestSkyPyServer(unittest.TestCase):
             'to': 'initialize'
         })
 
-        client_two.send(bytes(data_two, "utf-8"))
-        self.client.send(bytes(data, "utf-8"))
+        client_two.send(self.__data_pack(bytes(data_two, "utf-8")))
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
 
-        received = self.client.recv(1024)
-        received = received.decode('utf-8')
+        received = self.__receive(self.client)
         received = json.loads(received)
-
-        # received_two = client_two.recv(1024)
-        # received_two = received_two.decode('utf-8')
-        # received_two = json.loads(received_two)
+        client_two.close()
 
         self.assertEqual(received['pub_key'], "test_key")
-        # self.assertEqual(received_two['pub_key'], "test_key")
+        received = self.__receive(self.client)
 
     def test_not_exist_method(self):
         data = json.dumps({
             'username': 'test',
             'to': 'not_exist'
         })
-        self.client.send(bytes(data, "utf-8"))
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
 
-        received = self.client.recv(1024)
-        received = received.decode('utf-8')
+        received = self.__receive(self.client)
         received = json.loads(received)
 
         self.assertEqual(received['error'], "AttributeError")
 
     def test_broadcast(self):
-        host, port = "localhost", 9999
-        sock = (host, port)
+        sock = (self.host, self.port)
 
         client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_two.connect(sock)
@@ -117,7 +129,7 @@ class TestSkyPyServer(unittest.TestCase):
         }
 
         data_one = self.__encode_message(data_one)
-        self.client.send(bytes(json.dumps(data_one), "utf-8"))
+        self.client.send(self.__data_pack(bytes(json.dumps(data_one), "utf-8")))
 
         data_two = {
             'username': 'test_two',
@@ -126,19 +138,19 @@ class TestSkyPyServer(unittest.TestCase):
         }
 
         data_two = self.__encode_message(data_two)
-        client_two.send(bytes(json.dumps(data_two), "utf-8"))
+        client_two.send(self.__data_pack(bytes(json.dumps(data_two), "utf-8")))
 
-        received_one = self.client.recv(1024)
-        received_two = client_two.recv(1024)
+        received_one = self.__receive(self.client)
+        self.__receive(client_two)
+        received_two = self.__receive(client_two)
 
-        self.assertEqual("hi test_one", self.__receive_message(received_one))
-        self.assertEqual("hi test_two", self.__receive_message(received_two))
+        self.assertEqual("hi test_two", self.__receive_message(received_one))
+        self.assertEqual("hi test_one", self.__receive_message(received_two))
 
         client_two.close()
 
     def _test_to_user(self):
-        host, port = "localhost", 9999
-        sock = (host, port)
+        sock = (self.host, self.port)
 
         client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_two.connect(sock)
@@ -151,7 +163,7 @@ class TestSkyPyServer(unittest.TestCase):
         }
 
         data_one = self.__encode_message(data_one)
-        self.client.send(bytes(json.dumps(data_one), "utf-8"))
+        self.client.send(self.__data_pack(bytes(json.dumps(data_one), "utf-8")))
 
         data_two = {
             'username': 'test_two',
@@ -161,11 +173,9 @@ class TestSkyPyServer(unittest.TestCase):
         }
 
         data_two = self.__encode_message(data_two)
-        client_two.send(bytes(json.dumps(data_two), "utf-8"))
-        print(self.client.recv(1024))
-        print(client_two.recv(1024))
-        received_one = self.client.recv(1024)
-        received_two = client_two.recv(1024)
+        client_two.send(self.__data_pack(bytes(json.dumps(data_two), "utf-8")))
+        received_one = self.__receive(self.client)
+        received_two = self.__receive(client_two)
 
         self.assertEqual("hi test_one", self.__receive_message(received_one))
         self.assertEqual("hi test_two", self.__receive_message(received_two))
