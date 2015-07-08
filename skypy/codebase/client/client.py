@@ -6,7 +6,7 @@ import json
 import socket
 from threading import Thread
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItem, QFont
+from PyQt5.QtGui import QStandardItem, QFont, QIcon
 
 from PyQt5.QtWidgets import QListWidgetItem
 import struct
@@ -16,10 +16,10 @@ from codebase.common.message_format import MessageFormat
 from codebase.utils.cryptodata import CryptoData
 
 
-class Client(Thread):
+class Client(QtCore.QThread):
     HOST, PORT = "localhost", 9998
     WINDOW = None
-    finished = QtCore.pyqtSignal()
+    add_tab_signal = QtCore.pyqtSignal(str)
     USERNAME_FILES = {}
 
     def __init__(self, *args, **kwargs):
@@ -30,7 +30,7 @@ class Client(Thread):
 
         self.__set_my_member(kwargs['username'])
         self.__initialize_member()
-        super(Client, self).__init__(*args, kwargs=kwargs)
+        super(Client, self).__init__(kwargs['parent'])
 
     def __initialize_member(self):
         pub_key = self.members[self.username].public_key
@@ -104,6 +104,12 @@ class Client(Thread):
 
         sock.sendall(data)
         return sock
+
+    @staticmethod
+    def check_text(message):
+        if message.find('(!python)') != -1:
+            return True
+        return False
 
     def add_member(self, data):
         new_user = data['username']
@@ -224,8 +230,12 @@ class Client(Thread):
                     continue
                 tab = self.set_data_to_correct_tab(data['type'])
                 item = QListWidgetItem(tab.children()[0])
-                item.setText("%s: %s" % (self.members[data['username']].username, str(data['message'])))
-
+                message = str(data['message'])
+                check_for_icon = Client.check_text(message)
+                item.setText("%s: %s" % (self.members[data['username']].username, message))
+                if check_for_icon is True:
+                    path = os.path.dirname(os.path.abspath(__file__))
+                    item.setIcon(QIcon(path + "/pictures/python.jpg"))
             except socket.timeout:
                 continue
         self.sock.close()
@@ -235,21 +245,19 @@ class Client(Thread):
         message = bytes(json.dumps(data), "utf-8")
         return message
 
-    def add_tab(self, username):
-        tab_1 = QtWidgets.QWidget(self.WINDOW.tab_widget)
-        tab_1.setObjectName(username)
-        list_widget = QtWidgets.QListWidget(tab_1)
-        list_widget.setGeometry(QtCore.QRect(0, 10, 461, 192))
-        self.WINDOW.tab_widget.addTab(tab_1, username)
+    def add_tab(self, username, is_set=True):
+        self.add_tab_signal.emit(username)
+        return is_set
 
-    def set_data_to_correct_tab(self, username):
+    def set_data_to_correct_tab(self, username, is_set=False):
         count_tabs = self.WINDOW.tab_widget.count()
         for count in range(count_tabs):
             tab = self.WINDOW.tab_widget.widget(count)
             if tab.objectName() == username:
                 return tab
-        self.add_tab(username)
-        return self.set_data_to_correct_tab(username)
+        if is_set is False:
+            is_set = self.add_tab(username)
+        return self.set_data_to_correct_tab(username, is_set)
 
     @staticmethod
     def format_message_encode(message):

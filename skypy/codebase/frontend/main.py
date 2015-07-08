@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QStandardItemModel, QFont
+from PyQt5.QtGui import QStandardItemModel, QFont, QIcon
 from PyQt5.QtWidgets import QListWidgetItem, QAbstractItemView, QFileDialog
 import struct
 from codebase.client.client import Client
@@ -10,9 +10,11 @@ import json
 class Events(metaclass=Singleton):
     def __init__(self, window, username):
         self.username = username
-        self.client = Client(username=self.username)
+        self.client = Client(username=self.username, parent=window)
         Client.WINDOW = window
         self.client.start()
+        self.client.add_tab_signal.connect(self.add_tab_from_client)
+        self.window = window
 
     def push_button_event(self, main_window_instance):
         call_function = lambda: self.push_button_action(main_window_instance)
@@ -29,12 +31,21 @@ class Events(metaclass=Singleton):
         current_tab = main_window_instance.tab_widget.currentWidget()
         current_widget = current_tab.children()[0]
         item = QListWidgetItem(current_widget)
+        check_for_icon = Client.check_text(line_text)
+        if check_for_icon is True:
+            path = os.path.dirname(os.path.abspath(__file__))
+            item.setIcon(QIcon(path + "/../client/pictures/python.jpg"))
         item.setText("%s: %s" % (self.username, line_text))
         self.client.send(line_text, current_tab)
         main_window_instance.line_edit.clear()
 
     def on_listView_clicked(self, main_window_instance, tab):
         username = main_window_instance.model.data(tab)
+        count_tabs = main_window_instance.tab_widget.count()
+        for count in range(count_tabs):
+            tab = main_window_instance.tab_widget.widget(count)
+            if tab.objectName() == username:
+                return
         tab_1 = QtWidgets.QWidget()
         tab_1.setObjectName(username)
         main_window_instance.tab_widget.addTab(tab_1, username)
@@ -57,6 +68,13 @@ class Events(metaclass=Singleton):
             item.setFont(font)
             item.setText("%s: %s" % (self.username, "Sending File..."))
             self.client.send(file_text, current_tab, is_file=True)
+
+    def add_tab_from_client(self, username):
+        tab_1 = QtWidgets.QWidget(self.window.tab_widget)
+        tab_1.setObjectName(username)
+        list_widget = QtWidgets.QListWidget(tab_1)
+        list_widget.setGeometry(QtCore.QRect(0, 10, 461, 192))
+        self.window.tab_widget.addTab(tab_1, username)
 
 
 class EventsTwo(metaclass=Singleton):
@@ -205,12 +223,13 @@ class Ui_Form(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Register"))
 
 
-class MainWindow(object):
-    def __init__(self):
+class MainWindow(QtCore.QObject):
+    def __init__(self, parent=None):
         self.central_widget = None
         self.list_view = None
         self.tab_widget = None
         self.model = None
+        super(MainWindow, self).__init__(parent)
 
     def setup_ui(self, window, username):
         window.setObjectName("MainWindow")
