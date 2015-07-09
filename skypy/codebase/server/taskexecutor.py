@@ -113,8 +113,6 @@ class TaskExecutor:
             self.sendall(member, message)
             self.sendall(member, ask_public_key)
 
-        # TODO: Ask all public keys
-
     def initialize_ask_key(self, data):
         members = self.client_data['members']
         member = Member.find_member(data['to_user'], members)

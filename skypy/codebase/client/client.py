@@ -17,6 +17,9 @@ from codebase.utils.cryptodata import CryptoData
 
 
 class Client(QtCore.QThread):
+    """
+    Here sits the business logic to the client
+    """
     HOST, PORT = "localhost", 9999
     WINDOW = None
     add_tab_signal = QtCore.pyqtSignal(str)
@@ -33,6 +36,11 @@ class Client(QtCore.QThread):
         super(Client, self).__init__(kwargs['parent'])
 
     def __initialize_member(self):
+        """
+        To allow other users to send messages to a user,
+        it must send its key with others to encode messages.
+        This method makes sure to send your key to all users.
+        """
         pub_key = self.members[self.username].public_key
         encode_pub_key = CryptoData.encode_base64(pub_key)
 
@@ -44,6 +52,14 @@ class Client(QtCore.QThread):
         self.sock.sendall(data)
 
     def __initialize_messages(self, data):
+        """
+        This method during initialization take care
+        to keep the key that was sent to him and to send your key
+        to the user who requested it
+
+        @type data: dict
+        @param data: data from socket
+        """
         if data['initialize']:
             if 'ask' in data:
                 pub_key = self.members[self.username].public_key
@@ -107,6 +123,13 @@ class Client(QtCore.QThread):
 
     @staticmethod
     def check_text(message):
+        """
+        Add Emoticon if in text find (!python)
+
+        @type message: str
+        @param message: message
+        @return: True or False
+        """
         if message.find('(!python)') != -1:
             return True
         return False
@@ -117,11 +140,23 @@ class Client(QtCore.QThread):
         self.__set_member(new_user, public_key)
 
     def __append_to_user_list(self, member):
+        """
+        Adds a user to the list of chat
+
+        @type member: Member
+        @param member: member
+        """
         item = QStandardItem(member.username)
         self.WINDOW.model.appendRow(item)
         self.WINDOW.list_view.setModel(self.WINDOW.model)
 
     def __delete_user(self, data):
+        """
+        Deletes a user from the list of chat
+
+        @type data: dict
+        @param data: data
+        """
         delete_username = data['delete_user_name']
         member = Member.find_member_dict(delete_username, self.members)
         if member in self.members:
@@ -132,6 +167,10 @@ class Client(QtCore.QThread):
             self.WINDOW.list_view.model().removeRow(index)
 
     def __receive_file(self, data):
+        """
+        Take care of this method to obtain the file from the user
+        and save it in the directory
+        """
         if data['is_ready'] is False:
             if data['type'] not in self.USERNAME_FILES:
                 self.__set_file_text(data)
@@ -149,6 +188,9 @@ class Client(QtCore.QThread):
         del self.USERNAME_FILES[data['type']]
 
     def __set_file_text(self, data):
+        """
+        Displayed in the chat of the user who sends a file
+        """
         tab = self.set_data_to_correct_tab(data['type'])
         font = QFont()
         font.setStyle(QFont.StyleItalic)
@@ -157,6 +199,9 @@ class Client(QtCore.QThread):
         item.setText("%s: Send file" % self.members[data['username']].username)
 
     def __set_text_after_save_file(self, data, path):
+        """
+        Specifies the text after the file has been sent
+        """
         tab = self.set_data_to_correct_tab(data['type'])
         font = QFont()
         font.setWeight(QFont.Bold)
@@ -187,6 +232,11 @@ class Client(QtCore.QThread):
         return path
 
     def receive_message(self, data):
+        """
+        Method gets the data to be sent from the server.
+        He takes care of it to decrypt and forward
+        to the correct methods of handling
+        """
         member = self.members[self.username]
         data = json.loads(data)
         if 'initialize' in data:
@@ -208,6 +258,9 @@ class Client(QtCore.QThread):
         return decrypt_data
 
     def receive(self):
+        """
+        Unpack the message
+        """
         try:
             size = struct.unpack("i", self.sock.recv(struct.calcsize("i")))
             data = ""
@@ -221,6 +274,10 @@ class Client(QtCore.QThread):
         return data
 
     def run(self):
+        """
+        Run method that makes an infinite loop
+        and receives continuous data from the server socket
+        """
         while True:
             try:
                 data = self.receive()
@@ -241,15 +298,25 @@ class Client(QtCore.QThread):
         self.sock.close()
 
     def format_message(self, data, is_file=False):
+        """
+        Formats a message, Add the proper encoding, if such is necessary
+        """
         data = self.encode_message(data, is_file)
         message = bytes(json.dumps(data), "utf-8")
         return message
 
     def add_tab(self, username, is_set=True):
+        """
+        Adds a tab in the signal method
+        of the main thread of the application.
+        """
         self.add_tab_signal.emit(username)
         return is_set
 
     def set_data_to_correct_tab(self, username, is_set=False):
+        """
+        Put messages in the right tab
+        """
         count_tabs = self.WINDOW.tab_widget.count()
         for count in range(count_tabs):
             tab = self.WINDOW.tab_widget.widget(count)
@@ -261,10 +328,16 @@ class Client(QtCore.QThread):
 
     @staticmethod
     def format_message_encode(message):
+        """
+        Packet message
+        """
         message = struct.pack("i", len(message)) + message
         return message
 
     def encode_message(self, data, is_file=False):
+        """
+        Encrypt the message by using the RSA and AES
+        """
         data['message_settings'] = {'message': data['message']}
         del data['message']
         pub_key = self.members[self.username].public_key
@@ -310,6 +383,10 @@ class Client(QtCore.QThread):
         return private_key.exportKey(), public_key.exportKey()
 
     def send(self, message, tab, is_file=False):
+        """
+        Method that cares about whether messages
+        are private or to all users
+        """
         tab_text = tab.objectName()
         if tab_text == 'broadcast':
             self.send_to_all(message)
@@ -331,6 +408,11 @@ class Client(QtCore.QThread):
         self.sock.sendall(data)
 
     def send_file(self, file, to):
+        """
+        The method takes care of that to send the file,
+        but in order to not delay the application
+        starts a thread that sends the file
+        """
         SendFile.file = file
         SendFile.to = to
         SendFile.client = self

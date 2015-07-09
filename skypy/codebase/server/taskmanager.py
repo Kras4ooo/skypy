@@ -28,6 +28,9 @@ class TaskManager:
         self.task_executor.execute(self.data, self.client_data)
 
     def delete_user_task(self):
+        """
+        Delete User
+        """
         self.task_executor.delete_user()
 
     def fail_task(self):
