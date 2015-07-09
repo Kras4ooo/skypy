@@ -1,6 +1,6 @@
 import random
 import string
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 import os
 import json
 import socket
@@ -17,7 +17,7 @@ from codebase.utils.cryptodata import CryptoData
 
 
 class Client(QtCore.QThread):
-    HOST, PORT = "localhost", 9998
+    HOST, PORT = "localhost", 9999
     WINDOW = None
     add_tab_signal = QtCore.pyqtSignal(str)
     USERNAME_FILES = {}
@@ -331,10 +331,6 @@ class Client(QtCore.QThread):
         self.sock.sendall(data)
 
     def send_file(self, file, to):
-        """
-        import os
-        desktopFile = os.path.expanduser("~/Desktop/myfile.txt")
-        """
         SendFile.file = file
         SendFile.to = to
         SendFile.client = self
