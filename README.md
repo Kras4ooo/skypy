@@ -11,6 +11,7 @@ Before you start the application you need to make a table with the following fie
 * username	
 * password	
 * public_key
+* is_login
 * created
 
 In the following file: skypy->codebase->server->db->db_connection.py You will find the settings you need to set your database.
