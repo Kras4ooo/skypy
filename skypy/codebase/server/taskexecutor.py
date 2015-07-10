@@ -70,7 +70,9 @@ class TaskExecutor:
             client.request.sendall(message)
 
     def delete_user(self):
+        user = User()
         delete_user = self.client_data['client'].username
+        user.set_logout(delete_user)
         message = MessageFormat.delete_user_server(delete_user)
         message = TaskExecutor.encode_message(message)
         for member in self.client_data['members']:

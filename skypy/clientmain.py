@@ -1,3 +1,4 @@
+import socket
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QStandardItemModel, QFont, QIcon
 from PyQt5.QtWidgets import QListWidgetItem, QAbstractItemView, QFileDialog
@@ -8,9 +9,10 @@ import json
 
 
 class Events(metaclass=Singleton):
-    def __init__(self, window, username):
+    def __init__(self, window, username, sock):
         self.username = username
-        self.client = Client(username=self.username, parent=window)
+        self.client = Client(username=self.username, parent=window,
+                             socket=sock)
         Client.WINDOW = window
         self.client.start()
         self.client.add_tab_signal.connect(self.add_tab_from_client)
@@ -80,6 +82,8 @@ class Events(metaclass=Singleton):
 class EventsTwo(metaclass=Singleton):
     def __init__(self, window):
         self.window = window
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((Client.HOST, Client.PORT))
 
     def push_button_event(self, main_window_instance):
         call_function_register = lambda: self.push_register_action(main_window_instance)
@@ -87,12 +91,12 @@ class EventsTwo(metaclass=Singleton):
         main_window_instance.pushButton_2.clicked.connect(call_function_register)
         main_window_instance.pushButton.clicked.connect(call_function_login)
 
-    def receive(self, sock):
+    def receive(self):
         try:
-            size = struct.unpack("i", sock.recv(struct.calcsize("i")))
+            size = struct.unpack("i", self.sock.recv(struct.calcsize("i")))
             data = ""
             while len(data) < size[0]:
-                msg = sock.recv(size[0] - len(data))
+                msg = self.sock.recv(size[0] - len(data))
                 if not msg:
                     return None
                 data += msg.decode('utf-8')
@@ -107,10 +111,9 @@ class EventsTwo(metaclass=Singleton):
             'password': main_window_instance.lineEdit_5.text(),
             'public_key': Client.get_or_generate_key()[1].decode('utf-8'),
         }
-        sock = Client.register_user(data)
-        response = self.receive(sock)
+        Client.register_user(data, self.sock)
+        response = self.receive()
         response = json.loads(response)
-        sock.close()
 
         if response['is_success'] is True:
             main_window_instance.label_6.setText("Register successfully")
@@ -123,10 +126,9 @@ class EventsTwo(metaclass=Singleton):
             'password': main_window_instance.lineEdit_2.text(),
             'public_key': Client.get_or_generate_key()[1].decode('utf-8'),
         }
-        sock = Client.login_user(data)
-        response = self.receive(sock)
+        Client.login_user(data, self.sock)
+        response = self.receive()
         response = json.loads(response)
-        sock.close()
 
         if response['is_correct'] is True:
             """
@@ -135,7 +137,7 @@ class EventsTwo(metaclass=Singleton):
             main_window_instance.label_7.setText("Correct User")
             main_window_instance.Form.close()
             main_window_instance.Form = QtWidgets.QMainWindow()
-            ui = MainWindow()
+            ui = MainWindow(sock=self.sock)
             ui.setup_ui(main_window_instance.Form, data['username'])
             main_window_instance.Form.show()
         else:
@@ -224,11 +226,12 @@ class Ui_Form(object):
 
 
 class MainWindow(QtCore.QObject):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, sock=None):
         self.central_widget = None
         self.list_view = None
         self.tab_widget = None
         self.model = None
+        self.sock = sock
         super(MainWindow, self).__init__(parent)
 
     def setup_ui(self, window, username):
@@ -248,7 +251,7 @@ class MainWindow(QtCore.QObject):
         self.retranslate_ui(window)
         QtCore.QMetaObject.connectSlotsByName(window)
 
-        ev = Events(self, username)
+        ev = Events(self, username, self.sock)
         ev.push_button_event(self)
 
     def set_list_widget(self):

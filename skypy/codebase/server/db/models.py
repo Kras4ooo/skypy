@@ -36,8 +36,13 @@ class User(Model):
         self.username = data['username']
         self.password = data['password']
         if self.__check_user():
+            self.__update_is_login(1)
             return True
         return False
+
+    def set_logout(self, username):
+        self.username = username
+        self.__update_is_login(0)
 
     def __insert_user(self):
         query = "INSERT INTO {0} (first_name, username, password, public_key)" \
@@ -51,7 +56,7 @@ class User(Model):
 
     def __check_user(self):
         query = 'SELECT COUNT("{0}") FROM {1} WHERE username="{2}" AND ' \
-                'password="{3}"'
+                'password="{3}" AND is_login=0'
         query = query.format('id', self.db_name, self.username, self.password)
         self.execute(query)
         for result in self.result:
@@ -67,3 +72,9 @@ class User(Model):
             if result[0] != 0:
                 return True
             return False
+
+    def __update_is_login(self, is_login):
+        query = 'UPDATE {0} SET is_login={1} WHERE username="{2}"'
+        query = query.format(self.db_name, is_login, self.username)
+        self.cur.execute(query)
+        self.conn.commit()

@@ -26,8 +26,7 @@ class Client(QtCore.QThread):
     USERNAME_FILES = {}
 
     def __init__(self, *args, **kwargs):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.HOST, self.PORT))
+        self.sock = kwargs['socket']
         self.members = {}
         self.username = None
 
@@ -95,31 +94,24 @@ class Client(QtCore.QThread):
         self.members[username] = member
 
     @staticmethod
-    def register_user(data):
+    def register_user(data, sock):
         data['password'] = CryptoData.encode_only_rsa(
             data['password'],
             data['public_key']
         )
         message = MessageFormat.register_user_client(data)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((Client.HOST, Client.PORT))
         data = Client.format_message_encode(message)
         sock.sendall(data)
-        return sock
 
     @staticmethod
-    def login_user(data):
+    def login_user(data, sock):
         data['password'] = CryptoData.encode_only_rsa(
             data['password'],
             data['public_key']
         )
         message = MessageFormat.login_user_client(data)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((Client.HOST, Client.PORT))
         data = Client.format_message_encode(message)
-
         sock.sendall(data)
-        return sock
 
     @staticmethod
     def check_text(message):
@@ -281,6 +273,7 @@ class Client(QtCore.QThread):
         while True:
             try:
                 data = self.receive()
+                print(data)
                 data = self.receive_message(data)
                 print("Got data: ", data)
                 if data is True:
