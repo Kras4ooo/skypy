@@ -418,6 +418,7 @@ class Client(QtCore.QThread):
         SendFile.client = self
         SendFile().start()
 
+
 class SendFile(Thread):
     file = None
     to = None

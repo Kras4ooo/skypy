@@ -40,3 +40,19 @@ class TestCryptoData(unittest.TestCase):
         self.new_data = CryptoData.decode(self.new_data, self.private_key)
         self.assertNotIn('key_string', self.new_data.keys())
         self.assertNotIn('val_string', self.new_data.keys())
+
+    def test_encode_base64(self):
+        self.new_data = CryptoData.encode_base64("test")
+        self.assertEqual("dGVzdA==", self.new_data)
+
+    def test_decode_base64(self):
+        self.new_data = CryptoData.decode_base64("dGVzdA==")
+        self.assertEqual("test", self.new_data.decode("utf-8"))
+
+    def test_encode_only_rsa(self):
+        self.new_data = CryptoData.encode_only_rsa("test", self.public_key)
+        self.assertEqual("RFbBUM7z6xheG5BpB2DC8Ua7SXwgc6IEg75"
+                         "hu4Pbm3cPZeTC1KSjOGJJ85qLXN0Z/fRzyZVOV"
+                         "D3iMzhB2JiSpyghv2W1nkiWwlhe6MD9EMKA2+6Si"
+                         "u6Wa1PB4I2BFJiptiZVdhTFf0o+GtwPC3GyK3YKi"
+                         "3B+TmxnD5fnJZHVOE4=", self.new_data)

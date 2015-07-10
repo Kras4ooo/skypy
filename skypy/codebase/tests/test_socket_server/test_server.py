@@ -1,7 +1,10 @@
+from errno import ECONNRESET
 import json
 import os
+import random
 import socket
 import socketserver
+import string
 import threading
 import unittest
 import struct
@@ -76,6 +79,9 @@ class TestSkyPyServer(unittest.TestCase):
             return False
         return data
 
+    def __generator(self, size=6, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
+
     def test_client_initialize(self):
         data = json.dumps({
             'public_key': 'test_key',
@@ -116,6 +122,58 @@ class TestSkyPyServer(unittest.TestCase):
 
         self.assertEqual(received['error'], "AttributeError")
 
+    def test_register_user(self):
+        data = json.dumps({
+            'first_name': self.__generator(),
+            'username': self.__generator(),
+            'password': self.__generator(),
+            'public_key': self.__generator(),
+            'to': 'register_user'
+        })
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
+
+        received = self.__receive(self.client)
+        received = json.loads(received)
+        self.assertTrue(received['is_success'])
+
+    def test_login_user(self):
+        data = json.dumps({
+            'username': 'username',
+            'password': 'password',
+            'to': 'login_user'
+        })
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
+
+        received = self.__receive(self.client)
+        received = json.loads(received)
+        self.assertTrue(received['is_correct'])
+
+    def test_register_user_false(self):
+        data = json.dumps({
+            'first_name': "first_name",
+            'username': "username",
+            'password': "password",
+            'public_key': "public_key",
+            'to': 'register_user'
+        })
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
+
+        received = self.__receive(self.client)
+        received = json.loads(received)
+        self.assertFalse(received['is_success'])
+
+    def test_login_user_false(self):
+        data = json.dumps({
+            'username': 'username',
+            'password': 'password1',
+            'to': 'login_user'
+        })
+        self.client.send(self.__data_pack(bytes(data, "utf-8")))
+
+        received = self.__receive(self.client)
+        received = json.loads(received)
+        self.assertFalse(received['is_correct'])
+
     def test_broadcast(self):
         sock = (self.host, self.port)
 
@@ -149,7 +207,7 @@ class TestSkyPyServer(unittest.TestCase):
 
         client_two.close()
 
-    def _test_to_user(self):
+    def test_to_user(self):
         sock = (self.host, self.port)
 
         client_two = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -159,7 +217,7 @@ class TestSkyPyServer(unittest.TestCase):
             'username': 'test_one',
             'message': "hi test_two",
             'to': 'to_user',
-            'to_user': 'test_two'
+            'to_user': 'test_one'
         }
 
         data_one = self.__encode_message(data_one)
@@ -169,7 +227,7 @@ class TestSkyPyServer(unittest.TestCase):
             'username': 'test_two',
             'message': "hi test_one",
             'to': 'to_user',
-            'to_user': 'test_one'
+            'to_user': 'test_two'
         }
 
         data_two = self.__encode_message(data_two)
@@ -177,7 +235,7 @@ class TestSkyPyServer(unittest.TestCase):
         received_one = self.__receive(self.client)
         received_two = self.__receive(client_two)
 
-        self.assertEqual("hi test_one", self.__receive_message(received_one))
-        self.assertEqual("hi test_two", self.__receive_message(received_two))
+        self.assertEqual("hi test_two", self.__receive_message(received_one))
+        self.assertEqual("hi test_one", self.__receive_message(received_two))
 
         client_two.close()
